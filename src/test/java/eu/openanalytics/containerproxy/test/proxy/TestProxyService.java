@@ -50,11 +50,15 @@ public class TestProxyService {
 	
 	@Inject
 	private ProxyService proxyService;
-	
+
 	@Test
 	public void launchProxy() throws Exception {
-		String specId = environment.getProperty("proxy.specs[0].id");
+		launchProxy(0);
+		launchProxy(1);
+	}
 
+	private void launchProxy(int idx) {
+		String specId = environment.getProperty("proxy.specs[" + idx + "].id");
 		ProxySpec baseSpec = proxyService.findProxySpec(s -> s.getId().equals(specId), true);
 		ProxySpec spec = proxyService.resolveProxySpec(baseSpec, null, null);
 

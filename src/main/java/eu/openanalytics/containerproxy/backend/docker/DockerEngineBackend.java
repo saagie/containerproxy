@@ -136,14 +136,16 @@ public class DockerEngineBackend extends AbstractDockerBackend {
 	
 	@Override
 	protected void doStopProxy(Proxy proxy) throws Exception {
-		for (Container container: proxy.getContainers()) {
-			String[] networkConnections = container.getSpec().getNetworkConnections();
-			if (networkConnections != null) {
-				for (String conn: networkConnections) {
-					dockerClient.disconnectFromNetwork(container.getId(), conn);
+		for (Container container : proxy.getContainers()) {
+			if (container.getSpec().isProxyManaged()) {
+				String[] networkConnections = container.getSpec().getNetworkConnections();
+				if (networkConnections != null) {
+					for (String conn : networkConnections) {
+						dockerClient.disconnectFromNetwork(container.getId(), conn);
+					}
 				}
+				dockerClient.removeContainer(container.getId(), RemoveContainerParam.forceKill());
 			}
-			dockerClient.removeContainer(container.getId(), RemoveContainerParam.forceKill());
 		}
 		portAllocator.release(proxy.getId());
 	}
