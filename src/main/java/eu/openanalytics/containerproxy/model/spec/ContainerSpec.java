@@ -42,7 +42,7 @@ public class ContainerSpec {
 	private String cpuLimit;
 	private Map<String, String> labels = new HashMap<>();
 	private Map<String, String> settings = new HashMap<>();
-	private boolean proxyManaged = true;
+	private boolean proxyManaged = false;
 	private String appUrl;
 
 	public boolean isProxyManaged() {		return proxyManaged;	}
