@@ -1,7 +1,7 @@
 /**
  * ContainerProxy
  *
- * Copyright (C) 2016-2019 Open Analytics
+ * Copyright (C) 2016-2020 Open Analytics
  *
  * ===========================================================================
  *
@@ -69,7 +69,12 @@ public abstract class AbstractContainerBackend implements IContainerBackend {
 	//TODO rename vars?
 	protected static final String ENV_VAR_USER_NAME = "SHINYPROXY_USERNAME";
 	protected static final String ENV_VAR_USER_GROUPS = "SHINYPROXY_USERGROUPS";
-	
+	protected static final String ENV_VAR_REALM_ID = "SHINYPROXY_REALM_ID";
+
+	protected static final String LABEL_PROXY_ID = "openanalytics.eu/sp-proxy-id";
+	protected static final String LABEL_PROXY_SPEC_ID = "openanalytics.eu/sp-spec-id";
+	protected static final String LABEL_STARTUP_TIMESTAMP = "openanalytics.eu/sp-proxy-startup-timestamp";
+
 	protected final Logger log = LogManager.getLogger(getClass());
 	
 	private boolean useInternalNetwork;
@@ -132,13 +137,19 @@ public abstract class AbstractContainerBackend implements IContainerBackend {
 				container = startContainer(spec, proxy);
 			}
 			else {
-				container = new Container();
-				container.setSpec(spec);
-				container.setId(UUID.randomUUID().toString());
+				// add labels need for App Recovery and maintenance
+				spec.addLabel(LABEL_PROXY_ID, proxy.getId());
+				spec.addLabel(LABEL_PROXY_SPEC_ID, proxy.getSpec().getId());
+				spec.addLabel(LABEL_STARTUP_TIMESTAMP, String.valueOf(proxy.getStartupTimestamp()));
 
-				String mapping = mappingStrategy.createMapping("default", container, proxy);
-				URI target = new URI(spec.getAppUrl());
-				proxy.getTargets().put(mapping, target);
+				ExpressionAwareContainerSpec eSpec = new ExpressionAwareContainerSpec(spec, proxy, expressionResolver);
+				container = startContainer(eSpec, proxy);
+				container.setSpec(spec);
+
+				// remove labels needed for App Recovery since they do not really belong to the spec
+				spec.removeLabel(LABEL_PROXY_ID);
+				spec.removeLabel(LABEL_PROXY_SPEC_ID);
+				spec.removeLabel(LABEL_STARTUP_TIMESTAMP);
 			}
 
 			proxy.getContainers().add(container);
@@ -204,6 +215,11 @@ public abstract class AbstractContainerBackend implements IContainerBackend {
 		String[] groups = userService.getGroups(userService.getCurrentAuth());
 		env.add(String.format("%s=%s", ENV_VAR_USER_GROUPS, Arrays.stream(groups).collect(Collectors.joining(","))));
 		
+		String realmId = environment.getProperty("proxy.realm-id");
+		if (realmId != null) {
+			env.add(String.format("%s=%s", ENV_VAR_REALM_ID, realmId));
+		}
+
 		String envFile = containerSpec.getEnvFile();
 		if (envFile != null && Files.isRegularFile(Paths.get(envFile))) {
 			Properties envProps = new Properties();

@@ -1,7 +1,7 @@
 /**
  * ContainerProxy
  *
- * Copyright (C) 2016-2019 Open Analytics
+ * Copyright (C) 2016-2020 Open Analytics
  *
  * ===========================================================================
  *
@@ -110,6 +110,7 @@ public class SAMLConfiguration {
 	public WebSSOProfileOptions defaultWebSSOProfileOptions() {
 		WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
 		webSSOProfileOptions.setIncludeScoping(false);
+		webSSOProfileOptions.setForceAuthN(Boolean.valueOf(environment.getProperty("proxy.saml.force-authn", "false")));
 		return webSSOProfileOptions;
 	}
 

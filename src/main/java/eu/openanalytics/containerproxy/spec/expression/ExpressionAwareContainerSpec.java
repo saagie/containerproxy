@@ -1,7 +1,7 @@
 /**
  * ContainerProxy
  *
- * Copyright (C) 2016-2019 Open Analytics
+ * Copyright (C) 2016-2020 Open Analytics
  *
  * ===========================================================================
  *
@@ -91,6 +91,13 @@ public class ExpressionAwareContainerSpec extends ContainerSpec {
 	}
 	public boolean isPrivileged() {
 		return source.isPrivileged();
+	}
+	@Override
+	public Map<String, String> getLabels() {
+		if (source.getLabels() == null) return null;
+		Map<String, String> settings = new HashMap<>();
+		source.getLabels().entrySet().stream().forEach(e -> settings.put(e.getKey(), resolve(e.getValue())));
+		return settings;
 	}
 	public Map<String, String> getSettings() {
 		if (source.getSettings() == null) return null;

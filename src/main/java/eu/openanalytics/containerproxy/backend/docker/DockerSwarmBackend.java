@@ -1,7 +1,7 @@
 /**
  * ContainerProxy
  *
- * Copyright (C) 2016-2019 Open Analytics
+ * Copyright (C) 2016-2020 Open Analytics
  *
  * ===========================================================================
  *
@@ -71,6 +71,7 @@ public class DockerSwarmBackend extends AbstractDockerBackend {
 		com.spotify.docker.client.messages.swarm.ContainerSpec containerSpec = 
 				com.spotify.docker.client.messages.swarm.ContainerSpec.builder()
 				.image(spec.getImage())
+				.labels(spec.getLabels())
 				.command(spec.getCmd())
 				.env(buildEnv(spec, proxy))
 				.dnsConfig(DnsConfig.builder().nameServers(spec.getDns()).build())

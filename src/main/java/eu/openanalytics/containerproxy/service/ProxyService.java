@@ -1,7 +1,7 @@
 /**
  * ContainerProxy
  *
- * Copyright (C) 2016-2019 Open Analytics
+ * Copyright (C) 2016-2020 Open Analytics
  *
  * ===========================================================================
  *
@@ -95,8 +95,17 @@ public class ProxyService {
 	
 	@PreDestroy
 	public void shutdown() {
-		containerKiller.shutdown();
-		for (Proxy proxy: getProxies(null, true)) backend.stopProxy(proxy);
+		try {
+			containerKiller.shutdown();
+		} finally {
+			for (Proxy proxy : activeProxies) {
+				try {
+					backend.stopProxy(proxy);
+				} catch (Exception exception) {
+					exception.printStackTrace();
+				}
+			}
+		}
 	}
 	
 	/**

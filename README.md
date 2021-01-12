@@ -18,14 +18,14 @@ It is the engine that powers a.o. [ShinyProxy](https://shinyproxy.io) but can be
 
 Learn more at https://containerproxy.io (in progress)
 
-#### (c) Copyright Open Analytics NV, 2017-2018 - Apache License 2.0
+#### (c) Copyright Open Analytics NV, 2017-2020 - Apache License 2.0
 
 ## Building from source
 
 Clone this repository and run
 
 ```
-mvn -U clean install
+mvn -U clean install -DskipTests
 ```
 
 The build will result in a single `.jar` file that is made available in the `target` directory.

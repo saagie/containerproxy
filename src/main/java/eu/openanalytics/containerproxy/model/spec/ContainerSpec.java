@@ -1,7 +1,7 @@
 /**
  * ContainerProxy
  *
- * Copyright (C) 2016-2019 Open Analytics
+ * Copyright (C) 2016-2020 Open Analytics
  *
  * ===========================================================================
  *
@@ -40,6 +40,7 @@ public class ContainerSpec {
 	private String memoryLimit;
 	private String cpuRequest;
 	private String cpuLimit;
+	private Map<String, String> labels = new HashMap<>();
 	private Map<String, String> settings = new HashMap<>();
 	private boolean proxyManaged = true;
 	private String appUrl;
@@ -54,7 +55,7 @@ public class ContainerSpec {
 	public void setAppUrl(String appUrl) {
 		this.appUrl = appUrl;
 	}
-	
+
 	public String getImage() {
 		return image;
 	}
@@ -139,9 +140,30 @@ public class ContainerSpec {
 	public void setCpuLimit(String cpuLimit) {
 		this.cpuLimit = cpuLimit;
 	}
+	public Map<String, String> getLabels() {
+		return labels;
+	}
+	public void setLabels(Map<String, String> labels) {
+		this.labels = labels;
+	}
+
+	public void addLabel(String key, String value) {
+		if (this.labels.containsKey(key)) {
+			throw new IllegalStateException("Cannot add duplicate label with key " + key);
+		} else {
+			labels.put(key, value);
+		}
+	}
+
+	public void removeLabel(String key) {
+		labels.remove(key);
+	}
+
+
 	public Map<String, String> getSettings() {
 		return settings;
 	}
+
 	public void setSettings(Map<String, String> settings) {
 		this.settings = settings;
 	}
@@ -167,6 +189,10 @@ public class ContainerSpec {
 		target.setCpuRequest(cpuRequest);
 		target.setCpuLimit(cpuLimit);
 		target.setPrivileged(privileged);
+		if (labels != null) {
+			if (target.getLabels() == null) target.setLabels(new HashMap<>());
+			target.getLabels().putAll(labels);
+		}
 		if (settings != null) {
 			if (target.getSettings() == null) target.setSettings(new HashMap<>());
 			target.getSettings().putAll(settings);

@@ -1,7 +1,7 @@
 /**
  * ContainerProxy
  *
- * Copyright (C) 2016-2019 Open Analytics
+ * Copyright (C) 2016-2020 Open Analytics
  *
  * ===========================================================================
  *
@@ -50,10 +50,13 @@ import org.keycloak.representations.adapters.config.AdapterConfig;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer.AuthorizedUrl;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -63,6 +66,10 @@ import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.stereotype.Component;
 
 import eu.openanalytics.containerproxy.auth.IAuthenticationBackend;
@@ -76,11 +83,15 @@ public class KeycloakAuthenticationBackend implements IAuthenticationBackend {
 	Environment environment;
 
 	@Inject
-	AuthenticationManager authenticationManager;
+	WebSecurityConfigurerAdapter webSecurityConfigurerAdapter;
 	
 	@Inject
 	ApplicationContext ctx;
-	
+
+	@Inject
+	@Lazy
+	AuthenticationManager authenticationManager;
+
 	@Override
 	public String getName() {
 		return NAME;
@@ -92,7 +103,7 @@ public class KeycloakAuthenticationBackend implements IAuthenticationBackend {
 	}
 
 	@Override
-	public void configureHttpSecurity(HttpSecurity http) throws Exception {
+	public void configureHttpSecurity(HttpSecurity http, AuthorizedUrl anyRequestConfigurer) throws Exception {
 		http.formLogin().disable();
 		
 		http
@@ -118,7 +129,17 @@ public class KeycloakAuthenticationBackend implements IAuthenticationBackend {
 	@Bean
 	@ConditionalOnProperty(name="proxy.authentication", havingValue="keycloak")
 	protected KeycloakAuthenticationProcessingFilter keycloakAuthenticationProcessingFilter() throws Exception {
-		KeycloakAuthenticationProcessingFilter filter = new KeycloakAuthenticationProcessingFilter(authenticationManager);
+		// Possible solution for issue #21037, create a custom RequestMatcher that doesn't include a QueryParamPresenceRequestMatcher(OAuth2Constants.ACCESS_TOKEN) request matcher.
+		// The QueryParamPresenceRequestMatcher(OAuth2Constants.ACCESS_TOKEN) caused the HTTP requests to be changed before they where processed.
+		// Because the HTTP requests are adapted before they are processed, the requested failed to complete successfully and caused an io.undertow.server.TruncatedResponseException
+		// If in the future we need a RequestMatcher for het ACCESS_TOKEN, we can implement one ourself
+		RequestMatcher requestMatcher =
+				new OrRequestMatcher(
+	                    new AntPathRequestMatcher(KeycloakAuthenticationProcessingFilter.DEFAULT_LOGIN_URL),
+	                    new RequestHeaderRequestMatcher(KeycloakAuthenticationProcessingFilter.AUTHORIZATION_HEADER)
+	            );
+
+		KeycloakAuthenticationProcessingFilter filter = new KeycloakAuthenticationProcessingFilter(authenticationManager, requestMatcher);
 		filter.setSessionAuthenticationStrategy(sessionAuthenticationStrategy());
 		// Fix: call afterPropertiesSet manually, because Spring doesn't invoke it for some reason.
 		filter.setApplicationContext(ctx);
