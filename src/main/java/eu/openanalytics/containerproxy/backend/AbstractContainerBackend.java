@@ -118,12 +118,7 @@ public abstract class AbstractContainerBackend implements IContainerBackend {
 			stopProxy(proxy);
 			throw new ContainerProxyException("Failed to start container", t);
 		}
-		
-		if (!testStrategy.testProxy(proxy)) {
-			stopProxy(proxy);
-			throw new ContainerProxyException("Container did not respond in time");
-		}
-		
+
 		proxy.setStartupTimestamp(System.currentTimeMillis());
 		proxy.setStatus(ProxyStatus.Up);
 	}
@@ -141,11 +136,14 @@ public abstract class AbstractContainerBackend implements IContainerBackend {
 				spec.addLabel(LABEL_PROXY_ID, proxy.getId());
 				spec.addLabel(LABEL_PROXY_SPEC_ID, proxy.getSpec().getId());
 				spec.addLabel(LABEL_STARTUP_TIMESTAMP, String.valueOf(proxy.getStartupTimestamp()));
-
 				ExpressionAwareContainerSpec eSpec = new ExpressionAwareContainerSpec(spec, proxy, expressionResolver);
-				container = startContainer(eSpec, proxy);
+				container = new Container();
 				container.setSpec(spec);
+				container.setId(UUID.randomUUID().toString());
 
+				String mapping = mappingStrategy.createMapping("default", container, proxy);
+				URI target = new URI(spec.getAppUrl());
+				proxy.getTargets().put(mapping, target);
 				// remove labels needed for App Recovery since they do not really belong to the spec
 				spec.removeLabel(LABEL_PROXY_ID);
 				spec.removeLabel(LABEL_PROXY_SPEC_ID);
